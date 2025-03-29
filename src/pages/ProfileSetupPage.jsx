@@ -34,6 +34,23 @@ const ProfileSetupPage = () => {
     "DevOps", "Cloud Computing", "Mobile Development", "Machine Learning"
   ];
 
+  // Function to generate avatar with initials
+  const generateInitialsAvatar = (name) => {
+    const initial = name && name.trim() ? name.trim()[0].toUpperCase() : '?';
+    // Google-like colors for the background
+    const colors = [
+      '#F44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5',
+      '#2196F3', '#03A9F4', '#00BCD4', '#009688', '#4CAF50',
+      '#8BC34A', '#CDDC39', '#FFC107', '#FF9800', '#FF5722'
+    ];
+    // Use the initial's character code to pick a color deterministically
+    const colorIndex = initial.charCodeAt(0) % colors.length;
+    return {
+      initial,
+      backgroundColor: colors[colorIndex]
+    };
+  };
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       if (currentUser) {
@@ -43,9 +60,12 @@ const ProfileSetupPage = () => {
         if (currentUser.displayName) {
           setFullName(currentUser.displayName);
         }
+        
+        // Check for photoURL from Google auth
         if (currentUser.photoURL) {
           setProfilePic(currentUser.photoURL);
         }
+        // Note: No need for else case here as we'll handle it in the render
         
         // Check if user profile already exists in Firestore
         try {
@@ -211,6 +231,9 @@ const ProfileSetupPage = () => {
     );
   }
 
+  // Get initial and avatar color for user if no profile pic
+  const avatarData = generateInitialsAvatar(fullName || (user?.email?.split('@')[0]) || '?');
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-screen bg-[#242424] text-white">
       <h1 className="text-4xl font-bold mb-6 text-center">Complete Your Profile</h1>
@@ -295,8 +318,11 @@ const ProfileSetupPage = () => {
                         className="w-24 h-24 rounded-full object-cover border-2 border-purple-500"
                       />
                     ) : (
-                      <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 border-2 border-gray-600">
-                        No Image
+                      <div 
+                        className="w-24 h-24 rounded-full flex items-center justify-center text-white text-2xl font-bold border-2 border-gray-600"
+                        style={{ backgroundColor: avatarData.backgroundColor }}
+                      >
+                        {avatarData.initial}
                       </div>
                     )}
                   </div>
