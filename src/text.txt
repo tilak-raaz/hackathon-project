@@ -1,3 +1,31 @@
+how do i integrate all of these, keep the theme and animation of everything like of the signup page.dont waste characters just give code of each file.Dont make files for signin,jobsearccomponents,loadingscreen.jsx,notfoundpage.jsx,dashboard.jsx,jobapiservice.jsx, cause its alreaddy made similarly to signup,dont waste characters
+
+ this is a job website where skills of users are recorded in the profile setup page  and jobs apis are fetched,jobs are suggested to a user  based on skills
+api:-import axios from 'axios';
+
+const options = {
+  method: 'GET',
+  url: 'https://indeed-indeed.p.rapidapi.com/apisearch',
+  params: {
+    v: '2',
+    format: 'json',
+    q: 'java',
+    l: 'austin, tx',
+    radius: '25'
+  },
+  headers: {
+    'x-rapidapi-key': '708376d487msha9a3bc6ca8fb8d0p118620jsn4812743ad2b5',
+    'x-rapidapi-host': 'indeed-indeed.p.rapidapi.com'
+  }
+};
+
+try {
+    const response = await axios.request(options);
+    console.log(response.data);
+} catch (error) {
+    console.error(error);
+}
+
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore, collection, query, where, getDocs, addDoc, setDoc, doc } from "firebase/firestore";
@@ -43,17 +71,17 @@ export const fetchJobsForSkills = async (skills, limit = 20) => {
       jobPostingsCollection,
       where("skillsRequired", "array-contains-any", skills)
     );
-    
+
     const querySnapshot = await getDocs(q);
     const jobs = [];
-    
+
     querySnapshot.forEach((doc) => {
       jobs.push({
         id: doc.id,
         ...doc.data()
       });
     });
-    
+
     // Sort by relevance (count of matching skills)
     return jobs.sort((a, b) => {
       const aMatches = a.skillsRequired.filter(skill => skills.includes(skill)).length;
@@ -117,3 +145,4 @@ export const saveSearchHistory = async (userId, searchQuery, selectedFilters) =>
 };
 
 export default app;
+
