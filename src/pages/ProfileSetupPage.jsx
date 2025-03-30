@@ -8,6 +8,7 @@ const ProfileSetupPage = () => {
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [skills, setSkills] = useState('');
+  const [additionalSkills, setAdditionalSkills] = useState('');
   const [profilePicture, setProfilePicture] = useState(null);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -23,8 +24,8 @@ const ProfileSetupPage = () => {
         await setDoc(userRef, {
           fullName,
           username,
-          skills: skills.split(',').map(skill => skill.trim()),
-          profilePicture: profilePicture ? URL.createObjectURL(profilePicture) : ''
+          skills: [...skills.split(',').map(skill => skill.trim()), ...additionalSkills.split(',').map(skill => skill.trim())],
+          profilePicture: profilePicture ? URL.createObjectURL(profilePicture) : (user.photoURL ? user.photoURL : user.displayName.charAt(0).toUpperCase())
         });
         navigate('/account');
       }
@@ -109,15 +110,42 @@ const ProfileSetupPage = () => {
             className="mb-4"
           >
             <label className="block text-sm font-medium text-gray-300" htmlFor="skills">
-              Skills (comma separated)
+              Select Skills
             </label>
-            <input
+            <select
               className="mt-1 p-2 w-full bg-gray-700 border border-gray-600 rounded-md text-white"
               name="skills"
               id="skills"
-              type="text"
+              multiple
               value={skills}
-              onChange={(e) => setSkills(e.target.value)}
+              onChange={(e) => setSkills(Array.from(e.target.selectedOptions, option => option.value).join(','))}
+            >
+              <option value="JavaScript">JavaScript</option>
+              <option value="React">React</option>
+              <option value="Node.js">Node.js</option>
+              <option value="Python">Python</option>
+              <option value="Django">Django</option>
+              <option value="Java">Java</option>
+              <option value="Spring">Spring</option>
+            </select>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
+            className="mb-4"
+          >
+            <label className="block text-sm font-medium text-gray-300" htmlFor="additionalSkills">
+              Additional Skills (comma separated)
+            </label>
+            <input
+              className="mt-1 p-2 w-full bg-gray-700 border border-gray-600 rounded-md text-white"
+              name="additionalSkills"
+              id="additionalSkills"
+              type="text"
+              value={additionalSkills}
+              onChange={(e) => setAdditionalSkills(e.target.value)}
               required
             />
           </motion.div>
@@ -125,7 +153,7 @@ const ProfileSetupPage = () => {
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6, duration: 0.5 }}
+            transition={{ delay: 0.7, duration: 0.5 }}
             className="mb-4"
           >
             <label className="block text-sm font-medium text-gray-300" htmlFor="profilePicture">
@@ -143,7 +171,7 @@ const ProfileSetupPage = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.5 }}
+            transition={{ delay: 0.8, duration: 0.5 }}
             className="flex justify-end"
           >
             <button
