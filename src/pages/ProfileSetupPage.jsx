@@ -1,111 +1,158 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { doc, setDoc } from "firebase/firestore";
-import { auth, db, fetchRecommendedJobs } from "../firebase.config";
-import { motion } from "framer-motion";
-import { FaSpinner } from "react-icons/fa";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { auth, db } from '../firebase.config';
+import { setDoc, doc } from 'firebase/firestore';
+import { motion } from 'framer-motion';
 
-const skillsList = ["JavaScript", "React", "Node.js", "Python", "Java", "C++", "SQL", "Machine Learning", "DevOps", "Cybersecurity"];
-const experienceLevels = ["Entry Level", "Mid Level", "Senior Level"];
-
-const ProfileSetupPage = ({ userData, setUserData, setHasCompletedProfile }) => {
+const ProfileSetupPage = () => {
+  const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
+  const [skills, setSkills] = useState('');
+  const [profilePicture, setProfilePicture] = useState(null);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    fullName: userData?.displayName || "",
-    skills: userData?.skills || [],
-    experience: userData?.experience || "",
-  });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [redirect, setRedirect] = useState(false); // 🚀 NEW: Track when to navigate
-
-  // Navigate to Dashboard when profile is completed
-  useEffect(() => {
-    if (redirect) {
-      navigate("/dashboard");
-    }
-  }, [redirect, navigate]); // 🔥 Ensures it navigates after state updates
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const toggleSkill = (skill) => {
-    setFormData((prev) => ({
-      ...prev,
-      skills: prev.skills.includes(skill) ? prev.skills.filter((s) => s !== skill) : [...prev.skills, skill],
-    }));
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSaving(true);
-    setError("");
-
+    setError('');
+    
     try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) throw new Error("User not authenticated");
-
-      await setDoc(doc(db, "users", currentUser.uid), {
-        ...formData,
-        email: currentUser.email,
-        profileCompleted: true,
-        updatedAt: new Date(),
-      }, { merge: true });
-
-      setUserData({ ...formData, profileCompleted: true });
-      setHasCompletedProfile(true);
-
-      // 🔥 Fetch job recommendations after profile setup
-      await fetchRecommendedJobs(currentUser.uid);
-
-      setRedirect(true); // 🚀 NEW: Trigger navigation after state updates
-    } catch (error) {
-      setError("Failed to save profile: " + error.message);
+      const user = auth.currentUser;
+      if (user) {
+        const userRef = doc(db, 'users', user.uid);
+        await setDoc(userRef, {
+          fullName,
+          username,
+          skills: skills.split(',').map(skill => skill.trim()),
+          profilePicture: profilePicture ? URL.createObjectURL(profilePicture) : ''
+        });
+        navigate('/account');
+      }
+    } catch (err) {
+      setError('Failed to set up profile: ' + err.message);
     }
-    setSaving(false);
+  };
+
+  const handleFileChange = (e) => {
+    setProfilePicture(e.target.files[0]);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#242424] text-white p-6">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-lg">
-        <h2 className="text-3xl font-bold mb-4 text-center">Complete Your Profile</h2>
-        <p className="text-gray-400 text-center mb-6">This helps us recommend the best jobs for you.</p>
+    <div className="flex flex-col items-center justify-center min-h-screen w-screen bg-[#242424] text-white">
+      <h1 className="text-4xl font-bold mb-6 text-center">Set Up Your Profile</h1>
+      
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 50 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="max-w-md mx-auto relative overflow-hidden z-10 bg-gray-800 p-8 rounded-lg shadow-md 
+        before:w-24 before:h-24 before:absolute before:bg-purple-600 before:rounded-full before:-z-10 before:blur-2xl 
+        after:w-32 after:h-32 after:absolute after:bg-sky-400 after:rounded-full after:-z-10 after:blur-xl after:top-24 after:-right-12"
+      >
+        <h2 className="text-2xl font-bold text-white mb-6">Profile Setup</h2>
+        
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-500 bg-opacity-20 border border-red-500 text-red-100 px-4 py-2 rounded-md mb-4"
+          >
+            {error}
+          </motion.div>
+        )}
 
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        <form onSubmit={handleSubmit}>
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="mb-4"
+          >
+            <label className="block text-sm font-medium text-gray-300" htmlFor="fullName">
+              Full Name
+            </label>
+            <input
+              className="mt-1 p-2 w-full bg-gray-700 border border-gray-600 rounded-md text-white"
+              name="fullName"
+              id="fullName"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+            />
+          </motion.div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-gray-300 mb-1">Full Name</label>
-            <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} required className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="mb-4"
+          >
+            <label className="block text-sm font-medium text-gray-300" htmlFor="username">
+              Username
+            </label>
+            <input
+              className="mt-1 p-2 w-full bg-gray-700 border border-gray-600 rounded-md text-white"
+              name="username"
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </motion.div>
 
-          <div>
-            <label className="block text-gray-300 mb-2">Select Your Skills</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {skillsList.map((skill) => (
-                <button key={skill} type="button" onClick={() => toggleSkill(skill)} className={`p-2 rounded-lg border transition ${formData.skills.includes(skill) ? "bg-blue-500 border-blue-600 text-white" : "bg-gray-700 border-gray-600 text-gray-300"}`}>
-                  {skill}
-                </button>
-              ))}
-            </div>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5, duration: 0.5 }}
+            className="mb-4"
+          >
+            <label className="block text-sm font-medium text-gray-300" htmlFor="skills">
+              Skills (comma separated)
+            </label>
+            <input
+              className="mt-1 p-2 w-full bg-gray-700 border border-gray-600 rounded-md text-white"
+              name="skills"
+              id="skills"
+              type="text"
+              value={skills}
+              onChange={(e) => setSkills(e.target.value)}
+              required
+            />
+          </motion.div>
 
-          <div>
-            <label className="block text-gray-300 mb-1">Experience Level</label>
-            <select name="experience" value={formData.experience} onChange={handleChange} required className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">Select Experience Level</option>
-              {experienceLevels.map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </select>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
+            className="mb-4"
+          >
+            <label className="block text-sm font-medium text-gray-300" htmlFor="profilePicture">
+              Profile Picture
+            </label>
+            <input
+              className="mt-1 p-2 w-full bg-gray-700 border border-gray-600 rounded-md text-white"
+              name="profilePicture"
+              id="profilePicture"
+              type="file"
+              onChange={handleFileChange}
+            />
+          </motion.div>
 
-          <button type="submit" disabled={saving} className="w-full p-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-semibold transition flex items-center justify-center">
-            {saving ? <FaSpinner className="animate-spin mr-2" /> : "Save & Continue"}
-          </button>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7, duration: 0.5 }}
+            className="flex justify-end"
+          >
+            <button
+              className="bg-gradient-to-r from-purple-600 via-purple-400 to-blue-500 text-white px-4 py-2 font-bold rounded-md hover:opacity-80"
+              type="submit"
+            >
+              Save Profile
+            </button>
+          </motion.div>
         </form>
       </motion.div>
     </div>

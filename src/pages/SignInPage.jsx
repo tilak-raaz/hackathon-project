@@ -1,52 +1,52 @@
-import { motion } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "../firebase.config";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '../firebase.config';
+import { motion } from 'framer-motion';
 
 const SignInPage = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    
+    setError('');
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate("/dashboard"); // Redirect to dashboard after successful login
+      navigate('/account'); // Redirect to account page after successful sign in
     } catch (error) {
-      setError("Failed to sign in: " + error.message);
+      setError('Failed to sign in: ' + error.message);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    setError("");
-    
+    setError('');
+
     try {
       await signInWithPopup(auth, googleProvider);
-      navigate("/dashboard"); // Redirect to dashboard after successful login
+      navigate('/account'); // Redirect to account page after successful sign in with Google
     } catch (error) {
-      setError("Failed to sign in with Google: " + error.message);
+      setError('Failed to sign in with Google: ' + error.message);
     }
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-screen bg-[#242424] text-white">
       <h1 className="text-4xl font-bold mb-6 text-center">Welcome Back</h1>
-      
+
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 50 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
         className="max-w-md mx-auto relative overflow-hidden z-10 bg-gray-800 p-8 rounded-lg shadow-md 
         before:w-24 before:h-24 before:absolute before:bg-purple-600 before:rounded-full before:-z-10 before:blur-2xl 
         after:w-32 after:h-32 after:absolute after:bg-sky-400 after:rounded-full after:-z-10 after:blur-xl after:top-24 after:-right-12"
       >
         <h2 className="text-2xl font-bold text-white mb-6">Sign In</h2>
-        
+
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -56,7 +56,7 @@ const SignInPage = () => {
             {error}
           </motion.div>
         )}
-        
+
         {/* Google Sign In Button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -77,14 +77,14 @@ const SignInPage = () => {
             Sign in with Google
           </button>
         </motion.div>
-        
+
         {/* Divider */}
         <div className="flex items-center mb-6">
           <div className="flex-grow border-t border-gray-600"></div>
           <span className="flex-shrink mx-4 text-gray-400 text-sm">or sign in with email</span>
           <div className="flex-grow border-t border-gray-600"></div>
         </div>
-        
+
         <form onSubmit={handleSubmit}>
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -105,6 +105,7 @@ const SignInPage = () => {
               required
             />
           </motion.div>
+
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
@@ -124,6 +125,7 @@ const SignInPage = () => {
               required
             />
           </motion.div>
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -138,13 +140,14 @@ const SignInPage = () => {
             </button>
           </motion.div>
         </form>
+
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6, duration: 0.5 }}
           className="mt-4 text-center text-gray-300"
         >
-          Don't have an account? <Link to="/signup" className="text-purple-400 hover:underline">Register Now</Link>
+          Don't have an account? <Link to="/signup" className="text-purple-400 hover:underline">Sign Up</Link>
         </motion.p>
       </motion.div>
     </div>
