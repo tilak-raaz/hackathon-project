@@ -11,6 +11,7 @@ import JobDashboard from "./pages/JobDashboard";
 import JobSearchComponent from "./pages/JobSearchComponents.jsx";
 import ProfileSetupPage from "./pages/ProfileSetupPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import ApplicationsPage from "./pages/ApplicationsPage";
 
 // Components
 import LoadingScreen from "./components/LoadingScreen";
@@ -62,6 +63,10 @@ function App() {
         <Route 
           path="/profile-setup" 
           element={user ? <ProfileSetupPage /> : <Navigate to="/signin" />} 
+        />
+        <Route 
+          path="/applications" 
+          element={user ? <ApplicationsPage /> : <Navigate to="/signin" />} 
         />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

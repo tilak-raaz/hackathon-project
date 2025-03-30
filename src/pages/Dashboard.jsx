@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { auth, db, storage } from "../firebase.config";
 import { signOut } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -34,6 +34,20 @@ const Dashboard = () => {
   // Job types options
   const jobTypeOptions = ["Tech", "Marketing", "Sales", "Design", "Finance", "HR", "Operations", "Other"];
   const workTypeOptions = ["Full-time", "Part-time", "Contract", "Remote", "Hybrid", "On-site"];
+
+  // Add this near the top of the file, after other constants
+  const skillOptions = [
+    // Programming Languages
+    "JavaScript", "Python", "Java", "C++", "Ruby", "PHP", "Swift", "TypeScript",
+    // Web Technologies
+    "React", "Angular", "Vue.js", "Node.js", "HTML5", "CSS3", "MongoDB", "SQL",
+    // Cloud & DevOps
+    "AWS", "Azure", "Docker", "Kubernetes", "CI/CD", "Git",
+    // Mobile Development
+    "React Native", "iOS Development", "Android Development", "Flutter",
+    // Other Technical Skills
+    "Machine Learning", "Data Analysis", "UI/UX Design", "Agile", "Scrum"
+  ];
 
   useEffect(() => {
     // Set up auth state observer
@@ -187,6 +201,8 @@ const Dashboard = () => {
       // Update Firestore document
       const userDocRef = doc(db, "users", user.uid);
       await updateDoc(userDocRef, {
+        fullName: userData.fullName,
+        skills: userData.skills || [],
         careerInterests,
         links,
         resumeUrl: updatedResumeUrl,
@@ -254,60 +270,84 @@ const Dashboard = () => {
         </motion.div>
       )}
       
+      <header className="bg-gray-900 p-4 shadow-md">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+            Job Compass
+          </Link>
+          
+          <nav className="flex space-x-4">
+            <Link
+              to="/job-search"
+              className="text-gray-300 hover:text-white transition-colors"
+            >
+              Search
+            </Link>
+            <button
+              onClick={() => {
+                setIsEditing(true);
+                setActiveTab("profile");
+                window.scrollTo(0, 0);
+              }}
+              className="text-gray-300 hover:text-white transition-colors"
+            >
+              Update Profile
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="text-gray-300 hover:text-white transition-colors"
+            >
+              Sign Out
+            </button>
+          </nav>
+        </div>
+      </header>
+      
       <div className="max-w-6xl mx-auto p-4 sm:p-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <button
-            onClick={handleSignOut}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition-all"
-          >
-            Sign Out
-          </button>
         </div>
 
-        {/* Tabs Navigation */}
-        <div className="flex border-b border-gray-700 mb-6 overflow-x-auto">
-          <button
-            className={`px-4 py-2 font-medium ${
-              activeTab === "profile"
-                ? "text-purple-400 border-b-2 border-purple-400"
-                : "text-gray-400 hover:text-white"
-            }`}
-            onClick={() => setActiveTab("profile")}
-          >
-            Profile
-          </button>
-          <button
-            className={`px-4 py-2 font-medium ${
-              activeTab === "career"
-                ? "text-purple-400 border-b-2 border-purple-400"
-                : "text-gray-400 hover:text-white"
-            }`}
-            onClick={() => setActiveTab("career")}
-          >
-            Career Interests
-          </button>
-          <button
-            className={`px-4 py-2 font-medium ${
-              activeTab === "resume"
-                ? "text-purple-400 border-b-2 border-purple-400"
-                : "text-gray-400 hover:text-white"
-            }`}
-            onClick={() => setActiveTab("resume")}
-          >
-            Resume
-          </button>
-          <button
-            className={`px-4 py-2 font-medium ${
-              activeTab === "branding"
-                ? "text-purple-400 border-b-2 border-purple-400"
-                : "text-gray-400 hover:text-white"
-            }`}
-            onClick={() => setActiveTab("branding")}
-          >
-            Personal Branding
-          </button>
-        </div>
+        <nav className="border-b border-gray-700 mb-6">
+          <ul className="flex gap-6">
+            <li>
+              <button
+                onClick={() => setActiveTab("profile")}
+                className={`pb-2 ${
+                  activeTab === "profile"
+                    ? "text-purple-500 border-b-2 border-purple-500"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Profile
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => setActiveTab("resume")}
+                className={`pb-2 ${
+                  activeTab === "resume"
+                    ? "text-purple-500 border-b-2 border-purple-500"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Resume
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => setActiveTab("personal-branding")}
+                className={`pb-2 ${
+                  activeTab === "personal-branding"
+                    ? "text-purple-500 border-b-2 border-purple-500"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Personal Branding
+              </button>
+            </li>
+          </ul>
+        </nav>
 
         {/* Content Area */}
         <div className="bg-gray-800 rounded-lg p-6 shadow-lg relative overflow-hidden
@@ -330,67 +370,135 @@ const Dashboard = () => {
                   />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold">{userData.fullName}</h2>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={userData.fullName}
+                      onChange={(e) => setUserData({ ...userData, fullName: e.target.value })}
+                      className="bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white text-2xl font-bold w-full mb-2"
+                    />
+                  ) : (
+                    <h2 className="text-2xl font-bold">{userData.fullName}</h2>
+                  )}
                   <p className="text-gray-300">{userData.email}</p>
-                  <span className="inline-block bg-purple-500 bg-opacity-30 text-purple-200 px-3 py-1 rounded-full text-sm mt-2">
-                    {userData.status}
-                  </span>
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <div className="mt-6">
                 <div>
-                  <h3 className="text-lg font-semibold mb-3 text-purple-300">About</h3>
-                  {userData.status === "Employee" && (
-                    <div className="space-y-2">
-                      <div>
-                        <span className="text-gray-400">Company:</span> {userData.companyName}
+                  <h3 className="text-lg font-semibold mb-3 text-purple-300 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9 3a1 1 0 012 0v5.5a.5.5 0 001 0V4a1 1 0 112 0v4.5a.5.5 0 001 0V6a1 1 0 112 0v5a7 7 0 11-14 0V9a1 1 0 012 0v2.5a.5.5 0 001 0V4a1 1 0 112 0v4.5a.5.5 0 001 0V3z" />
+                    </svg>
+                    Skills
+                  </h3>
+                  {isEditing ? (
+                    <div className="space-y-6">
+                      <div className="flex flex-wrap gap-2">
+                        {userData.skills && userData.skills.map((skill, index) => (
+                          <motion.div 
+                            key={index}
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm flex items-center gap-2 border border-purple-500/30 shadow-sm"
+                          >
+                            {skill}
+                            <button
+                              onClick={() => {
+                                const newSkills = userData.skills.filter((_, i) => i !== index);
+                                setUserData({ ...userData, skills: newSkills });
+                              }}
+                              className="text-red-400 hover:text-red-300 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50 rounded-full"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </motion.div>
+                        ))}
                       </div>
-                      <div>
-                        <span className="text-gray-400">Role:</span> {userData.jobRole}
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Experience:</span> {userData.yearsOfExperience} years
+                      <div className="space-y-4">
+                        <div className="relative group">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Type a skill and press Enter"
+                            className="w-full bg-gray-700/50 border border-gray-600 focus:border-purple-500/50 rounded-lg py-2 pl-10 pr-3 text-white placeholder-gray-400 transition-all focus:outline-none focus:ring-2 focus:ring-purple-500/30 backdrop-blur-sm"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter' && e.target.value.trim()) {
+                                const newSkill = e.target.value.trim();
+                                if (!userData.skills?.includes(newSkill)) {
+                                  const newSkills = [...(userData.skills || []), newSkill];
+                                  setUserData({ ...userData, skills: newSkills });
+                                  e.target.value = '';
+                                }
+                              }
+                            }}
+                          />
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span className="text-xs text-gray-400">Press Enter ↵</span>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm text-gray-300 mb-3 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-purple-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clipRule="evenodd" />
+                            </svg>
+                            Suggested Skills
+                          </label>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                            {skillOptions
+                              .filter(skill => !userData.skills?.includes(skill))
+                              .map((skill, index) => (
+                                <motion.button
+                                  key={index}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: index * 0.05 }}
+                                  onClick={() => {
+                                    const newSkills = [...(userData.skills || []), skill];
+                                    setUserData({ ...userData, skills: newSkills });
+                                  }}
+                                  className="bg-gray-700/50 hover:bg-gray-600/50 px-3 py-2 rounded-lg text-sm text-gray-300 hover:text-white transition-all flex items-center gap-2 group border border-gray-600/50 hover:border-purple-500/50 backdrop-blur-sm"
+                                >
+                                  <span className="text-purple-400 group-hover:text-purple-300">+</span>
+                                  {skill}
+                                </motion.button>
+                              ))
+                            }
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  ) : (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex flex-wrap gap-2"
+                    >
+                      {userData.skills && userData.skills.map((skill, index) => (
+                        <motion.span 
+                          key={index}
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm border border-purple-500/30 shadow-sm"
+                        >
+                          {skill}
+                        </motion.span>
+                      ))}
+                    </motion.div>
                   )}
                 </div>
-                
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-purple-300">Skills</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {userData.skills && userData.skills.map((skill, index) => (
-                      <span 
-                        key={index}
-                        className="bg-gray-700 px-3 py-1 rounded-full text-sm"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
               </div>
-            </motion.div>
-          )}
-          
-          {/* Career Interests Tab */}
-          {activeTab === "career" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="space-y-6"
-            >
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Career Interests</h2>
-                {!isEditing ? (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-md transition-all"
-                  >
-                    Edit
-                  </button>
-                ) : (
+              
+              {isEditing && (
+                <div className="flex justify-end mt-6">
                   <div className="flex gap-2">
                     <button
                       onClick={() => setIsEditing(false)}
@@ -406,67 +514,8 @@ const Dashboard = () => {
                       {saving ? "Saving..." : "Save"}
                     </button>
                   </div>
-                )}
-              </div>
-              
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-purple-300">What type of jobs are you looking for?</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {jobTypeOptions.map((jobType) => (
-                      <button
-                        key={jobType}
-                        onClick={() => isEditing && handleJobTypeToggle(jobType)}
-                        className={`px-3 py-1 rounded-full text-sm transition-all ${
-                          careerInterests.jobTypes.includes(jobType)
-                            ? "bg-purple-500 text-white"
-                            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                        } ${!isEditing && "cursor-default"}`}
-                        disabled={!isEditing}
-                      >
-                        {jobType}
-                      </button>
-                    ))}
-                  </div>
                 </div>
-                
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-purple-300">Preferred Job Type</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {workTypeOptions.map((workType) => (
-                      <button
-                        key={workType}
-                        onClick={() => isEditing && handleWorkTypeToggle(workType)}
-                        className={`px-3 py-1 rounded-full text-sm transition-all ${
-                          careerInterests.workTypes.includes(workType)
-                            ? "bg-purple-500 text-white"
-                            : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                        } ${!isEditing && "cursor-default"}`}
-                        disabled={!isEditing}
-                      >
-                        {workType}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-purple-300">Preferred Work Locations</h3>
-                  {isEditing ? (
-                    <textarea
-                      value={careerInterests.locations}
-                      onChange={(e) => setCareerInterests({...careerInterests, locations: e.target.value})}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-md p-3 text-white"
-                      placeholder="e.g., San Francisco, Remote, New York, London"
-                      rows={3}
-                    />
-                  ) : (
-                    <p className="text-gray-300">
-                      {careerInterests.locations || "No preferences set"}
-                    </p>
-                  )}
-                </div>
-              </div>
+              )}
             </motion.div>
           )}
           
@@ -609,7 +658,7 @@ const Dashboard = () => {
           )}
           
           {/* Personal Branding Tab - Completing this section */}
-          {activeTab === "branding" && (
+          {activeTab === "personal-branding" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -708,7 +757,7 @@ const Dashboard = () => {
                       {links.portfolio ? (
                         <div className="flex items-center gap-2">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-2-3a1 1 0 112 0v-2h2a1 1 0 110 2h-2v2a1 1 0 11-2 0v-2H6a1 1 0 110-2h2v-2z" clipRule="evenodd" />
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-2-3a1 1 0 112 0v-2h2a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                           </svg>
                           <a 
                             href={links.portfolio} 
