@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db, storage, functions } from '../firebase.config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -16,8 +16,20 @@ const ResumeUpload = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [enhancementResult, setEnhancementResult] = useState(null);
   const [error, setError] = useState('');
+  const [currentQueueId, setCurrentQueueId] = useState(null);
+  const [statusCheckerId, setStatusCheckerId] = useState(null);
+  const [processingStatus, setProcessingStatus] = useState('');
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
+
+  // Clean up interval when component unmounts
+  useEffect(() => {
+    return () => {
+      if (statusCheckerId) {
+        clearInterval(statusCheckerId);
+      }
+    };
+  }, [statusCheckerId]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -69,6 +81,7 @@ const ResumeUpload = () => {
 
     setIsUploading(true);
     setUploadProgress(0);
+    setError('');
     
     try {
       const userId = auth.currentUser.uid;
@@ -105,6 +118,7 @@ const ResumeUpload = () => {
 
   const enhanceResume = async (fileUrl, fileName) => {
     setIsProcessing(true);
+    setProcessingStatus('Initiating enhancement process...');
     
     try {
       // Call the Cloud Function to initiate the process
@@ -116,6 +130,7 @@ const ResumeUpload = () => {
       
       // Get the queue ID for status checking
       const queueId = result.data.queueId;
+      setCurrentQueueId(queueId);
       
       // Start polling for status updates
       startStatusPolling(queueId);
@@ -126,55 +141,68 @@ const ResumeUpload = () => {
       setIsProcessing(false);
     }
   };
-  
+
   // Function to poll for status updates
   const startStatusPolling = (queueId) => {
     const checkStatusFunction = httpsCallable(functions, 'checkResumeStatus');
     const pollInterval = 3000; // Check every 3 seconds
     
+    setProcessingStatus('Processing your resume...');
+    
     const statusChecker = setInterval(async () => {
       try {
         const statusResult = await checkStatusFunction({ queueId });
-        const { status, enhancedResume, error } = statusResult.data;
+        const { status, enhancedResume, error: processingError } = statusResult.data;
         
-        console.log('Current status:', status);
+        // Update the status message based on current status
+        if (status === 'processing') {
+          setProcessingStatus('AI is analyzing and enhancing your resume...');
+        }
         
         if (status === 'completed' && enhancedResume) {
           // Process is complete
           clearInterval(statusChecker);
+          setStatusCheckerId(null);
           setEnhancementResult(enhancedResume);
           setIsProcessing(false);
+          setProcessingStatus('');
         } 
         else if (status === 'error') {
           // Process encountered an error
           clearInterval(statusChecker);
-          setError(`Enhancement failed: ${error || 'Unknown error'}`);
+          setStatusCheckerId(null);
+          setError(`Enhancement failed: ${processingError || 'Unknown error'}`);
           setIsProcessing(false);
+          setProcessingStatus('');
         }
         // Continue polling if status is 'pending' or 'processing'
         
       } catch (error) {
         console.error("Error checking status:", error);
         clearInterval(statusChecker);
+        setStatusCheckerId(null);
         setError('Failed to check enhancement status. Please try again.');
         setIsProcessing(false);
+        setProcessingStatus('');
       }
     }, pollInterval);
     
     // Store the interval ID for cleanup
     setStatusCheckerId(statusChecker);
   };
-  
-  // Make sure to clean up interval when component unmounts
-  useEffect(() => {
-    return () => {
-      if (statusCheckerId) {
-        clearInterval(statusCheckerId);
-      }
-    };
-  }, [statusCheckerId]);
 
-  // The rest of your component remains the same
+  // Cancel processing if needed
+  const cancelProcessing = () => {
+    if (statusCheckerId) {
+      clearInterval(statusCheckerId);
+      setStatusCheckerId(null);
+    }
+    
+    setIsProcessing(false);
+    setProcessingStatus('');
+    setError('Processing canceled by user');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black relative overflow-hidden">
       {/* Background blur effect with colorful lights */}
@@ -264,10 +292,17 @@ const ResumeUpload = () => {
               
               {isProcessing && (
                 <div className="mb-6">
-                  <p className="text-gray-200 mb-2">Enhancing your resume with AI...</p>
-                  <div className="flex items-center justify-center">
+                  <p className="text-gray-200 mb-2">{processingStatus}</p>
+                  <div className="flex items-center justify-center space-x-2">
                     <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+                    <button 
+                      onClick={cancelProcessing}
+                      className="text-red-300 hover:text-red-400 text-sm"
+                    >
+                      Cancel
+                    </button>
                   </div>
+                  <p className="text-gray-400 text-sm mt-2">This may take up to a minute. Please don't close this page.</p>
                 </div>
               )}
               
@@ -290,7 +325,7 @@ const ResumeUpload = () => {
                       {enhancementResult}
                     </div>
                   </div>
-                  <div className="mt-6 flex justify-between">
+                  <div className="mt-6 flex flex-wrap gap-4 justify-between">
                     <button
                       onClick={() => {
                         // Copy to clipboard
@@ -314,6 +349,52 @@ const ResumeUpload = () => {
                     >
                       Download Enhanced Resume
                     </button>
+                    <button
+                      onClick={() => {
+                        // Reset the enhancement process
+                        setEnhancementResult(null);
+                        setFile(null);
+                        setFileName('');
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white font-medium transition-colors"
+                    >
+                      Start Over
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Features section */}
+              {!enhancementResult && !isProcessing && !isUploading && (
+                <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white/5 p-6 rounded-lg">
+                    <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">AI-Powered Analysis</h3>
+                    <p className="text-gray-300">Our AI analyzes your resume against top industry standards to highlight strengths and areas for improvement.</p>
+                  </div>
+                  
+                  <div className="bg-white/5 p-6 rounded-lg">
+                    <div className="w-12 h-12 bg-gradient-to-r from-pink-600 to-red-600 rounded-full flex items-center justify-center mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">Personalized Recommendations</h3>
+                    <p className="text-gray-300">Get tailored suggestions to improve wording, highlight achievements, and address potential red flags.</p>
+                  </div>
+                  
+                  <div className="bg-white/5 p-6 rounded-lg">
+                    <div className="w-12 h-12 bg-gradient-to-r from-green-600 to-teal-600 rounded-full flex items-center justify-center mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">ATS Optimization</h3>
+                    <p className="text-gray-300">Ensure your resume passes through Applicant Tracking Systems with proper keyword optimization and formatting.</p>
                   </div>
                 </div>
               )}
