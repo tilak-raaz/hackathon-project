@@ -107,24 +107,72 @@ const ResumeUpload = () => {
     setIsProcessing(true);
     
     try {
-      // Call the Cloud Function instead of OpenAI directly
+      // Call the Cloud Function to initiate the process
       const enhanceResumeFunction = httpsCallable(functions, 'enhanceResume');
       const result = await enhanceResumeFunction({ 
         fileUrl: fileUrl,
         fileName: fileName
       });
       
-      // Set the enhancement result
-      setEnhancementResult(result.data.enhancedResume);
+      // Get the queue ID for status checking
+      const queueId = result.data.queueId;
+      
+      // Start polling for status updates
+      startStatusPolling(queueId);
       
     } catch (error) {
-      console.error("Error enhancing resume:", error);
-      setError('Failed to enhance resume. Please try again.');
-    } finally {
-      setIsUploading(false);
+      console.error("Error initiating resume enhancement:", error);
+      setError('Failed to start resume enhancement. Please try again.');
       setIsProcessing(false);
     }
   };
+  
+  // Function to poll for status updates
+  const startStatusPolling = (queueId) => {
+    const checkStatusFunction = httpsCallable(functions, 'checkResumeStatus');
+    const pollInterval = 3000; // Check every 3 seconds
+    
+    const statusChecker = setInterval(async () => {
+      try {
+        const statusResult = await checkStatusFunction({ queueId });
+        const { status, enhancedResume, error } = statusResult.data;
+        
+        console.log('Current status:', status);
+        
+        if (status === 'completed' && enhancedResume) {
+          // Process is complete
+          clearInterval(statusChecker);
+          setEnhancementResult(enhancedResume);
+          setIsProcessing(false);
+        } 
+        else if (status === 'error') {
+          // Process encountered an error
+          clearInterval(statusChecker);
+          setError(`Enhancement failed: ${error || 'Unknown error'}`);
+          setIsProcessing(false);
+        }
+        // Continue polling if status is 'pending' or 'processing'
+        
+      } catch (error) {
+        console.error("Error checking status:", error);
+        clearInterval(statusChecker);
+        setError('Failed to check enhancement status. Please try again.');
+        setIsProcessing(false);
+      }
+    }, pollInterval);
+    
+    // Store the interval ID for cleanup
+    setStatusCheckerId(statusChecker);
+  };
+  
+  // Make sure to clean up interval when component unmounts
+  useEffect(() => {
+    return () => {
+      if (statusCheckerId) {
+        clearInterval(statusCheckerId);
+      }
+    };
+  }, [statusCheckerId]);
 
   // The rest of your component remains the same
   return (
